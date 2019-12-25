@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from load_data import loadDataWithThresholdList, dropUselessRows
+from load_data import loadDataWithThresholdList
 
 # CLNode represents a entity node
 class CLNode(object):
@@ -12,24 +12,33 @@ class CLNode(object):
         # id represents the node id
         self.id = nodeID
 
-        # level_set represents which level the node will belong
-        self.level_set = set()
+        # level represents the level node belong
+        self.level = -1
 
         # adjNodes represents the adjacency of the node
-        self.adjNodes = dict()
+        self.adjNodes_dict = dict()
+
+        # connectedBranch represents which the connected branch belong in which level
+        self.connectedBranch_dict = dict()
         pass
 
+    def getAdjNodes(self):
+        l = list()
+        for k, _ in self.adjNodes_dict:
+            l.append(k)
+            pass
+        return l
 
 # CLGraph represents the similarity graph
 class CLGraph(object):
     def __init__(self):
         super(CLGraph, self).__init__()
 
-        # levelSubGraphs represents all sub-graph splited by similarity | {levelId:dict{nodeId:CLNode}}
-        self.levelSubGraphs = dict()
+        # levelSubGraphs represents all sub-graph splited by similarity | {levelID:dict{nodeID:CLNode}}
+        self.levelSubGraphs_dict = dict()
 
-        # nodes_dict is used to store all nodes
-        self.nodes_dict = dict()
+        # connectedBranches represents connected branches for every level | {levelIDdict{branchID:List[nodeID]}}
+        self.connectedBranches_dict = dict()
 
         # similarity_threshold represents the similarity threshold, which is the machine result
         self.similarity_threshold = 0.3
@@ -42,50 +51,114 @@ class CLGraph(object):
                             [1.0, 1.0]]
         pass
 
-
-    # loadNodes loads data and generates a graph
-    def loadNodes(self, path):
-        df, dfs_list = loadDataWithThresholdList(path, self.threshold_list)
-
-        df = dropUselessRows(df, self.similarity_threshold, 1)
-        node1_arr = df[['node1']].values
-        node2_arr = df[['node2']].values
-        nodes_arr = np.hstack((node1_arr, node2_arr))
-        nodes_arr = np.unique(nodes_arr)
-
-        # initialize all nodes
-        for node in nodes_arr:
-                nodeID = node[0]
-                self.nodes_dict[nodeID] = CLNode(nodeID)
+    # merge duplicate lists
+    def mergeDuplicateList(self, cb):
+        for k1, inner in cb.items():
+            for k2, outer in cb.items():
+                if k1 == k2: continue
+                l = list(set(inner) & set(outer))
+                if len(l) > 0:
+                    cb[k1] = list(set(inner+outer))
+                    del cb[k2]
+                    return cb, False
                 pass
-
-        # generate relationships
-        level = 0
-        for dfl in dfs_list:
-            for _, row in dfl.iterrows():
-                id1, id2 = row['node1'], row['node2']
-                self.nodes_dict[id1].level_set.add(level)
-                self.nodes_dict[id1].adjNodes[id2] = row['similarity']
-                self.nodes_dict[id2].level_set.add(level)
-                self.nodes_dict[id2].adjNodes[id1] = row['similarity']
-                pass
-            level += 1
             pass
+        return cb, True
 
-        # generate subgraph
-        for i in range(level):
-            subgraph = dict()
-            for _, v in self.nodes_dict.items():
-                if i in v.level_set:
-                    subgraph[v.id] = v
+    # calculateCB calculates the connected branch
+    def calculateCB(self):
+        for level, subgraph in self.levelSubGraphs_dict.items():
+            cb = dict() # cdID:[nodeID]
+            j = 0
+            loop = False
+            for _, node in subgraph.items():
+
+                if j == 0 :
+                    cb[0] = list()
+                    cb[0].append(node.id)
+                    j += 1
+                    continue
+
+                for adjID, _ in node.adjNodes_dict.items():
+                    for b, l in cb.items():
+                        if adjID in l:
+                            cb[b].append(node.id)
+                            loop = True
+                            break
+                        pass
+
+                    if loop == True:
+                        loop = False
+                        break
+                    pass
+
+                cb[j] = list()
+                cb[j].append(node.id)
+                j += 1
                 pass
-            self.levelSubGraphs[i] = subgraph
+
+            while 1:
+                cb,ok = self.mergeDuplicateList(cb)
+                if ok == True: break
+
+            curcb = dict()
+            i = 0
+            for _,v in cb.items():
+                curcb[i] = v
+                i += 1
+
+            # write the connectedBranch_dict for each node
+            ##
+
+            self.connectedBranches_dict[level] = curcb
+            print("calculating the connected branch: {}%".format((level+1)/len(self.threshold_list) * 100))
             pass
         pass
 
 
+    # loadNodes loads data and generates a graph
+    def loadNodes(self, path):
+        dfs_list = loadDataWithThresholdList(path, self.threshold_list)
+
+        level = 0
+        for df in dfs_list:
+            node1_arr = df[['node1']].values
+            node2_arr = df[['node2']].values
+            nodes_arr = np.hstack((node1_arr, node2_arr))
+            nodes_arr = np.unique(nodes_arr)
+
+            # initialize nodes
+            nodes_dict = dict()
+            for node in nodes_arr:
+                nodeID = node
+                nodes_dict[nodeID] = CLNode(nodeID)
+                pass
+
+            # generate relationship
+            for _, row in df.iterrows():
+                id1, id2 = row['node1'], row['node2']
+                nodes_dict[id1].level = level
+                nodes_dict[id1].adjNodes_dict[id2] = row['similarity']
+                nodes_dict[id2].level = level
+                nodes_dict[id2].adjNodes_dict[id1] = row['similarity']
+                pass
+
+            # generate subgraph
+            self.levelSubGraphs_dict[level] = nodes_dict
+            level += 1
+            pass
+
+        print("loadData: 100%\ncalculating the connected branch")
+        self.calculateCB()
+        pass
+
+
+    # getCB gets the connected branch of one level subgraph
+    def getCB(self, subgraph):
+        pass
+
     def similarityInfer(self, level):
-        subgraph = self.levelSubGraphs[level]
+        # subgraph = self.levelSubGraphs_dict[level]
         # core algorithm
         # ---
         # 寻找连通分支
@@ -98,6 +171,7 @@ class CLGraph(object):
         # 如果这些点大多数边 fc 都小于阈值，将他们加入另一个 set
         # ---
         # 判断这个 set 中的点是不是同一类
+        # ---
         pass
 
     def start(self):
@@ -107,3 +181,6 @@ class CLGraph(object):
         # 结果写回
         pass
 
+if __name__ == "__main__":
+    graph_obj = CLGraph()
+    graph_obj.start()

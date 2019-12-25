@@ -45,4 +45,4 @@ def loadDataWithThresholdList(path, threshold_list):
         dfs_list.append(dropUselessRows(df, threshold[0], threshold[1]))
         pass
 
-    return df, dfs_list
+    return dfs_list

@@ -15,7 +15,7 @@ def drawOnePlane(df,title):
     nodes_arr = np.unique(nodes_arr)
 
     for node in nodes_arr:
-        G.add_node(node[0])
+        G.add_node(node)
         pass
 
     w_edges_arr = []
