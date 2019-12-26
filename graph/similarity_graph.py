@@ -42,6 +42,12 @@ class CLEdge(object):
 
         # labels represent the work labels
         self.labels_list = list()
+
+        # fc represent fc result
+        self.fc = -1
+
+        # result represent the similarity result
+        self.result = -1
         pass
 
 
@@ -197,27 +203,151 @@ class CLGraph(object):
     def getLabel(self, ask_list):
         df = self.labels_df
         for edge in ask_list:
+            if len(edge.labels_list) != 0:
+                continue
             l_df = df.loc[((df['node1'] == edge.node1) & (df['node2'] == edge.node2)) | ((df['node1'] == edge.node2) & (df['node2'] == edge.node1))]
             for _, row in l_df.iterrows():
                 edge.labels_list.append(row['work_label'])
                 pass
         pass
 
+    # getFc gets the Fc result
+    def getFc(self, a_list, r = False):
+        q_list = list()
+        for edge in a_list:
+            if len(edge.labels_list) == 0:
+                continue
+            if edge.fc != -1 | edge.result != -1:
+                continue
+
+            s = 0
+            for l in edge.labels_list:
+                s += int(l)
+                pass
+            fc = s/len(edge.labels_list)
+            edge.fc = fc
+            if (fc < self.fc_threshold) & (r == True):
+                q_list.append(edge)
+            pass
+
+        return q_list
+
+    # appendQList append edges to q_list for ask
+    def appendQList(self, nodeID, node, q_list):
+        for adjID,_ in node.adjNodes_dict.items():
+            for e in q_list:
+                if ((e.node1 == nodeID) & (e.node2 == adjID)) | ((e.node1 == adjID) & (e.node2 == nodeID)):
+                    continue
+                edge_obj = CLEdge(nodeID, adjID)
+                q_list.append(edge_obj)
+                pass
+            pass
+        pass
+
+    def iterationDo(self, l, q_list, subgraph, cb_node_list):
+        r_list = list()
+        b_list = list()
+        for n in l:
+            node = subgraph[n]
+            i = 0
+            for nid,_ in node.adjNodes_dict.items():
+                if nid in l:
+                    r_list.append([n,nid])
+                    i += 1
+                pass
+            if i == 0:
+                b_list.append(n)
+            pass
+
+        for p in r_list:
+            for e in q_list:
+                if (e.node1 == p[0]  & e.node2 == p[1]) | (e.node1 == p[1] & e.node2 == p[0]):
+                    e.result = 1
+                pass
+            pass
+
+        print(b_list)
+        if len(b_list) == 0:
+            return
+
+        for nid in b_list:
+            node = subgraph[nid]
+            self.appendQList(nid, node, q_list)
+            pass
+
+        # iteration
+        self.askAgain(q_list, cb_node_list, subgraph)
+        pass
 
     # askAgain iteratively calculate different nodes
-    def askAgain(self, nodes):
-        # TODO: any cluster algorithm?
-        # 1 如果整个连通分支上的节点都有问题，n 个节点时候 similarity 全部写为 0
-        # 2 对有问题的节点记分
-        # 3 获取记分最高的节点的邻接节点的 label
-        # 4 从这个节点出发分离整个图
-        # ---
-        # 获取这些点的一些边的 label
-        # 如果这些点大多数边 fc 都小于阈值，将他们加入另一个 set
-        # ---
-        # 判断这个 set 中的点是不是同一类
-        # ---
+    def askAgain(self, q_list, cb_node_list, subgraph):
+        # 1 if there are problems with the nodes on the entire connected branch, the similarity is written as 0 for all n nodes
+        n_list = list()
+        for edge in q_list:
+            if len(edge.labels_list) == 0:
+                n_list.append(edge.node1)
+                n_list.append(edge.node2)
+            pass
+
+        nu_list = list(set(n_list))
+        if len(nu_list) == len(cb_node_list) & len(nu_list) <= 2 & len(nu_list) > 0:
+            # TODO: write the answer
+            return
+
+        if len(nu_list) == 0:
+            return
+
+        # 2 score problematic nodes
+        scoreBoard_dict = dict()
+        for node in nu_list:
+            scoreBoard_dict[node] = 0
+            pass
+        for node in n_list:
+            scoreBoard_dict[node] += 1
+            pass
+        nID = -1
+        maxS = 0
+        for nodeID, s in scoreBoard_dict.items():
+            if maxS < s:
+                nID = nodeID
+                maxS = s
+            pass
+
+        # 3 get the label of the adjacent node of the node with the highest score
+        node = subgraph[nID]
+        self.appendQList(nID, node, q_list)
+        self.getLabel(q_list)
+
+        # 4 split
+        self.getFc(q_list)
+
+        l1 = list()
+        l2 = list()
+        for e in q_list:
+            if e.fc > self.fc_threshold:
+                e.result = 1
+                if e.node1 == nID:
+                    l1.append(e.node2)
+                else:
+                    l1.append(e.node1)
+
+            if e.fc < self.fc_threshold:
+                e.result = 0
+                if e.node1 == nID:
+                    l2.append(e.node2)
+                else:
+                    l2.append(e.node1)
+            pass
+
+        l1 = list(set(l1))
+        l2 = list(set(l2))
+        # 对于不相似的顶点，寻找连通分支
+        # 对连通分支上的所有点 result 写为 1
+        # 对独立的顶点创建 edge 加入 q_list 并应用 askAgain
+        self.iterationDo(l1, q_list, subgraph, cb_node_list)
+        self.iterationDo(l2, q_list, subgraph, cb_node_list)
         pass
+
 
     # similarityInfer calculate the similarity for nodes in the graph, result will be writed as 0 or 1
     def similarityInfer(self):
@@ -227,14 +357,20 @@ class CLGraph(object):
             later_list = list()
             for _, nodes_list in cb.items():
                 # if the number of connected branch nodes is less than or equal to 3, record and package them
-                if len(nodes_list) in [2,3]:
-                    for nodeID in nodes_list:
-                        n_df = df.loc[df.node1 == nodeID]
-                        for _, row in n_df.iterrows():
-                            edge_obj = CLEdge(row['node1'], row['node2'])
-                            later_list.append(edge_obj)
-                            pass
+                if len(nodes_list) <= 3:
+                    n_df = pd.DataFrame()
+                    for nID in nodes_list:
+                        n1_df = df.loc[df.node1 == nID]
+                        n2_df = df.loc[df.node2 == nID]
+                        n_df = pd.concat([n_df, n1_df])
+                        n_df = pd.concat([n_df, n2_df])
                         pass
+                    n_df = n_df.drop_duplicates()
+                    for _, row in n_df.iterrows():
+                        edge_obj = CLEdge(row['node1'], row['node2'])
+                        later_list.append(edge_obj)
+                        pass
+
                     continue
 
                 # apply algorithms on the remaining connected branches
@@ -248,38 +384,33 @@ class CLGraph(object):
                     pass
 
                 self.getLabel(ask_list)
-
-                q_list = list()
-                for edge in ask_list:
-                    if len(edge.labels_list) == 0:
-                        continue
-                    s = 0
-                    for l in edge.labels_list:
-                        s += int(l)
-                        pass
-                    fc = s/len(edge.labels_list)
-                    if fc < self.fc_threshold:
-                        q_list.append(edge)
-                    pass
+                q_list = self.getFc(ask_list, r=True)
 
                 if len(q_list) == 0:
                     # TODO: write the results
-                    print("all node in cb is same entity, we should write the answers")
+                    print("level:{}, cb:{}".format(level, nodes_list))
                     continue
 
-                # collect nodes
-                n_list = list()
-                for edge in q_list:
-                    n_list.append(edge.node1)
-                    n_list.append(edge.node2)
-                    pass
-
-                n_list = list(set(n_list))
-                # TODO: now we should find the different nodes
-                print("need ask: {}".format(n_list))
-
+                # askAgain
+                self.askAgain(q_list, nodes_list, subgraph)
+                # TODO: write the q_list result
+                print("level:{}, cb:{}".format(level, nodes_list))
                 pass
             pass
+
+            if len(later_list) == 0:
+                continue
+            self.getLabel(later_list)
+            self.getFc(later_list)
+            # TODO: write the later_list result
+            for e in later_list:
+                if e.fc > self.fc_threshold:
+                    e.result = 1
+                else:
+                    e.result = 0
+                print("result:{}".format(e.result))
+                pass
+
         pass
 
     def start(self):
