@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from load_data import loadData
+from load_data import loadData, loadLabels
 from draw import drawOnePlane
 
-paper_df = loadData("./../dataset/paper_pair.csv", threshold_under = 0.4, threshold_upper = 0.5)
-drawOnePlane(paper_df, "paper-1.0")
+
+paper_df = loadData("./../dataset/paper_pair_test.csv", threshold_under = 1.0, threshold_upper = 1.0)
+drawOnePlane(paper_df, "paper-3-5")

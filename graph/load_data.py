@@ -46,3 +46,22 @@ def loadDataWithThresholdList(path, threshold_list):
         pass
 
     return dfs_list
+
+# loadLabel loads the worker labels
+def loadLabels(path):
+    df = pd.DataFrame(columns=('node1', 'node2', 'correct_label', 'work_label'))
+    count = len(open(path,'rU').readlines())
+    with open(path, 'r') as datafile:
+        i = 0
+        for line in datafile:
+            line = line.strip("\n")
+            if line == "":
+                continue
+            data = line.replace("_"," ")
+            node1, node2, correct_label, work_label = data.split(" ")
+            df.loc[i] = [node1, node2, correct_label, work_label]
+            i += 1
+            print('\r' + 'Load Labels: ' + str(round(i/count*100, 2)) + '%', end='', flush=True)
+            pass
+
+    return df
