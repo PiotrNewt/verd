@@ -65,3 +65,14 @@ def loadLabels(path):
             pass
 
     return df
+
+# labels2csv loads labels and write back as csv file
+def labels2csv(path):
+    df = loadLabels(path)
+    df.to_csv(path + ".csv")
+    pass
+
+# loadLabelsFromCSV loads labels from csv file
+def loadLabelsFromCSV(path):
+    df = df = pd.read_csv(path, usecols=['node1', 'node2', 'correct_label', 'work_label'])
+    return df
