@@ -159,13 +159,13 @@ class CLGraph(object):
             pass
         pass
 
-
     # loadNodes loads data and generates a graph
     def loadNodes(self, csvPath, labelsPath):
         self.dfs_list = loadDataWithThresholdList(csvPath, self.threshold_list)
 
         level = 0
         for df in self.dfs_list:
+            df['answer'] = -2
             node1_arr = df[['node1']].values
             node2_arr = df[['node2']].values
             nodes_arr = np.hstack((node1_arr, node2_arr))
@@ -266,7 +266,6 @@ class CLGraph(object):
                 pass
             pass
 
-        print(b_list)
         if len(b_list) == 0:
             return
 
@@ -290,8 +289,8 @@ class CLGraph(object):
             pass
 
         nu_list = list(set(n_list))
-        if len(nu_list) == len(cb_node_list) & len(nu_list) <= 2 & len(nu_list) > 0:
-            # TODO: write the answer
+        if len(nu_list) == len(cb_node_list) & len(nu_list) <= 5 & len(nu_list) > 0:
+            # if no recode rusult the answer is 0
             return
 
         if len(nu_list) == 0:
@@ -341,13 +340,25 @@ class CLGraph(object):
 
         l1 = list(set(l1))
         l2 = list(set(l2))
-        # 对于不相似的顶点，寻找连通分支
-        # 对连通分支上的所有点 result 写为 1
-        # 对独立的顶点创建 edge 加入 q_list 并应用 askAgain
+        # for dissimilar nodes, find connected branches
+        # write 1 for all points on the connected branch
+        # create edges for independent vertices, put in q_list and apply askAgain
         self.iterationDo(l1, q_list, subgraph, cb_node_list)
         self.iterationDo(l2, q_list, subgraph, cb_node_list)
         pass
 
+    # recodeAnswer recodes the answers
+    def recodeAnswer(self, level, nodes, q_list, useNodes=False):
+        df = self.dfs_list[level]
+        if useNodes:
+            for node in nodes:
+                df.loc[(df['node1']==node) | (df['node2']==node), 'answer'] = 1
+                pass
+        else:
+            for e in q_list:
+                df.loc[((df['node1']==e.node1) & (df['node2']==e.node2)) | ((df['node1']==e.node2) & (df['node2']==e.node1)), 'answer'] = e.result
+                pass
+        pass
 
     # similarityInfer calculate the similarity for nodes in the graph, result will be writed as 0 or 1
     def similarityInfer(self):
@@ -388,13 +399,16 @@ class CLGraph(object):
 
                 if len(q_list) == 0:
                     # TODO: write the results
-                    print("level:{}, cb:{}".format(level, nodes_list))
+                    df = self.dfs_list[level]
+                    self.recodeAnswer(level, nodes_list, None, useNodes=True)
+                    # print("level:{}, cb:{}".format(level, nodes_list))
                     continue
 
                 # askAgain
                 self.askAgain(q_list, nodes_list, subgraph)
                 # TODO: write the q_list result
-                print("level:{}, cb:{}".format(level, nodes_list))
+                self.recodeAnswer(level, None, q_list)
+                # print("level:{}, cb:{}".format(level, nodes_list))
                 pass
             pass
 
@@ -408,15 +422,27 @@ class CLGraph(object):
                     e.result = 1
                 else:
                     e.result = 0
-                print("result:{}".format(e.result))
+                # print("result:{}".format(e.result))
                 pass
+            self.recodeAnswer(level, None, later_list)
+        pass
 
+    # writeBackAnswer write the answer to a file
+    def writeBackAnswer(self, path):
+        df_r = pd.DataFrame()
+        for df in self.dfs_list:
+            df_r = pd.concat([df_r, df], axis=0)
+            pass
+        df_r.loc[(df_r['answer']==-2) | (df_r['answer']==-1),'answer'] = 0
+        df_r.to_csv(path)
+        print(df_r)
         pass
 
     def start(self):
         self.loadNodes("./../dataset/paper_pair_test.csv", "./../dataset/5w_paper_alllabels_test")
         print(" ")
         self.similarityInfer()
+        self.writeBackAnswer('./../dataset/' + 'r.csv')
         pass
 
 if __name__ == "__main__":
