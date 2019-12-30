@@ -434,7 +434,7 @@ class CLGraph(object):
             df_r = pd.concat([df_r, df], axis=0)
             pass
         df_r.loc[(df_r['answer']==-2) | (df_r['answer']==-1),'answer'] = 0
-        df_r.to_csv(path)
+        df_r.to_csv(path, index=False)
         print(df_r)
         pass
 
