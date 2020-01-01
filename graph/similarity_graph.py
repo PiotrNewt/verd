@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import random
 
-from load_data import loadDataWithThresholdList, loadLabels
+from load_data import loadDataWithThresholdList, loadLabels, loadLabelsFromCSV
 
 # CLNode represents a entity node
 class CLNode(object):
@@ -196,7 +196,9 @@ class CLGraph(object):
         self.calculateCB()
 
         # get all labels
-        self.labels_df = loadLabels(labelsPath)
+        # self.labels_df = loadLabels(labelsPath)
+        self.labels_df = loadLabelsFromCSV(labelsPath)
+        print("Load Labels: 100%\n")
         pass
 
     # getLabel gets the label from worker
@@ -206,6 +208,8 @@ class CLGraph(object):
             if len(edge.labels_list) != 0:
                 continue
             l_df = df.loc[((df['node1'] == edge.node1) & (df['node2'] == edge.node2)) | ((df['node1'] == edge.node2) & (df['node2'] == edge.node1))]
+            # TODO: bug here
+            print(l_df)
             for _, row in l_df.iterrows():
                 edge.labels_list.append(row['work_label'])
                 pass
@@ -352,7 +356,7 @@ class CLGraph(object):
         df = self.dfs_list[level]
         if useNodes:
             for node in nodes:
-                df.loc[(df['node1']==node) | (df['node2']==node), 'answer'] = 1
+                df.loc[(df['node1']==node) | (df['node2']==node), 'answer'] = -3
                 pass
         else:
             for e in q_list:
@@ -406,7 +410,6 @@ class CLGraph(object):
 
                 # askAgain
                 self.askAgain(q_list, nodes_list, subgraph)
-                # TODO: write the q_list result
                 self.recodeAnswer(level, None, q_list)
                 # print("level:{}, cb:{}".format(level, nodes_list))
                 pass
@@ -416,7 +419,6 @@ class CLGraph(object):
                 continue
             self.getLabel(later_list)
             self.getFc(later_list)
-            # TODO: write the later_list result
             for e in later_list:
                 if e.fc > self.fc_threshold:
                     e.result = 1
@@ -433,14 +435,12 @@ class CLGraph(object):
         for df in self.dfs_list:
             df_r = pd.concat([df_r, df], axis=0)
             pass
-        df_r.loc[(df_r['answer']==-2) | (df_r['answer']==-1),'answer'] = 0
+        # df_r.loc[(df_r['answer']==-2) | (df_r['answer']==-1),'answer'] = 0
         df_r.to_csv(path, index=False)
-        print(df_r)
         pass
 
     def start(self):
-        self.loadNodes("./../dataset/paper_pair_test.csv", "./../dataset/5w_paper_alllabels_test")
-        print(" ")
+        self.loadNodes("./../dataset/paper_pair_test.csv", "./../dataset/5w_paper_alllabels_test.csv")
         self.similarityInfer()
         self.writeBackAnswer('./../dataset/' + 'r.csv')
         pass
