@@ -165,7 +165,7 @@ class CLGraph(object):
 
         level = 0
         for df in self.dfs_list:
-            df['answer'] = -2
+            df['answer'] = -2 #-2 means we never use this edge (about small cb)
             node1_arr = df[['node1']].values
             node2_arr = df[['node2']].values
             nodes_arr = np.hstack((node1_arr, node2_arr))
@@ -207,9 +207,7 @@ class CLGraph(object):
         for edge in ask_list:
             if len(edge.labels_list) != 0:
                 continue
-            l_df = df.loc[((df['node1'] == edge.node1) & (df['node2'] == edge.node2)) | ((df['node1'] == edge.node2) & (df['node2'] == edge.node1))]
-            # TODO: bug here
-            print(l_df)
+            l_df = df.loc[((df['node1'] == int(edge.node1)) & (df['node2'] == int(edge.node2))) | ((df['node1'] == int(edge.node2)) & (df['node2'] == int(edge.node1)))]
             for _, row in l_df.iterrows():
                 edge.labels_list.append(row['work_label'])
                 pass
@@ -356,7 +354,7 @@ class CLGraph(object):
         df = self.dfs_list[level]
         if useNodes:
             for node in nodes:
-                df.loc[(df['node1']==node) | (df['node2']==node), 'answer'] = -3
+                df.loc[(df['node1']==node) | (df['node2']==node), 'answer'] = -3 #-3 means all node is same entity in this cb
                 pass
         else:
             for e in q_list:
@@ -435,7 +433,8 @@ class CLGraph(object):
         for df in self.dfs_list:
             df_r = pd.concat([df_r, df], axis=0)
             pass
-        # df_r.loc[(df_r['answer']==-2) | (df_r['answer']==-1),'answer'] = 0
+        df_r.loc[(df_r['answer']==-2) | (df_r['answer']==-1),'answer'] = 0
+        df_r.loc[(df_r['answer']==-3),'answer'] = 1
         df_r.to_csv(path, index=False)
         pass
 
