@@ -231,7 +231,6 @@ class CLGraph(object):
             if (fc < self.fc_threshold) & (r == True):
                 q_list.append(edge)
             pass
-
         return q_list
 
     # appendQList append edges to q_list for ask
@@ -439,9 +438,9 @@ class CLGraph(object):
         pass
 
     def start(self):
-        self.loadNodes("././dataset/paper_pair.csv", "././dataset/5w_paper_alllabels.csv")
+        self.loadNodes("../dataset/paper_pair.csv", "../dataset/5w_paper_alllabels.csv")
         self.similarityInfer()
-        self.writeBackAnswer('././dataset/' + 'r.csv')
+        self.writeBackAnswer('../dataset/' + 'r.csv')
         pass
 
 if __name__ == "__main__":

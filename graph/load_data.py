@@ -2,7 +2,6 @@
 
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 
 # dropUselessRows drops some useless rows here
 def dropUselessRows(df, threshold_under, threshold_upper):
@@ -75,4 +74,9 @@ def labels2csv(path):
 # loadLabelsFromCSV loads labels from csv file
 def loadLabelsFromCSV(path):
     df = pd.read_csv(path, usecols=['node1', 'node2', 'correct_label', 'work_label'])
+    return df
+
+# loadResultFile loads the result from csv file
+def loadResultFile(path):
+    df = pd.read_csv(path, usecols=['node1', 'node2', 'correct_label', 'similarity', 'answer'])
     return df
