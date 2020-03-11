@@ -46,5 +46,9 @@ def getFMeasure(alpha, path):
 
 
 if __name__ == "__main__":
-    f1_paper = getFMeasure(1, '../dataset/result/result_restaurant.csv')
-    print(f1_paper)
+    f1_paper = getFMeasure(1, '../dataset/result/result_paper.csv')
+    f1_product = getFMeasure(1, '../dataset/result/result_product.csv')
+    f1_restaurant = getFMeasure(1, '../dataset/result/result_restaurant.csv')
+    print('paper: ' + str(f1_paper))
+    print('product: ' + str(f1_product))
+    print('restaurant: ' + str(f1_restaurant))
