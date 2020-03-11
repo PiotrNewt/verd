@@ -23,13 +23,17 @@ Verd
 ## 简单想法
 在分析相关数据集时，考虑参考机器识别的相似度将不同的点划分在不同的相似度平面，绘制图片可以发现如下的连通分支：
 
-![analyze](./dataset/img/analyze.png)
+<p align="center">
+	<img src="./dataset/img/analyze.png" width="600"/>
+</p>
 
 其中，顶点代表记录，顶点间的边代表他们是否指向同一实体，蓝色边为是，红色边为否。
 
-可以发现其中红色边超过两条的顶点大概率与周围的顶点都不指向相同顶点。由于在不同的平面中将会产生许多类似的连通分支，考虑通过对每个连通分支的众包提问以推断其中其它顶点间的关系。主要算法见 [similarty_graph.py 注释](./graph/similarty_graph.py)。
+可以发现其中红色边超过两条的顶点大概率与周围的顶点都不指向相同顶点。由于在不同的平面中将会产生许多类似的连通分支，考虑通过对每个连通分支的众包提问以推断其中其它顶点间的关系。主要算法见 [similarty_graph.py 注释](./src/similarity_graph.py)。
 
-![schematic](./dataset/img/schematic.png)
+<p align="center">
+	<img src="./dataset/img/schematic.png" width="600"/>
+</p>
 
 ## 实验验证
 使用 ACD 中的实验数据集:
@@ -39,4 +43,6 @@ Verd
 
 编写验证代码，单计算 F1-Measure 指标如下图：
 
-![f1-measure](./dataset/img/f1-measure.png)
+<p align="center">
+	<img src="./dataset/img/f1-measure.png" width="300"/>
+</p>

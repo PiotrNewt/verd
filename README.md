@@ -22,13 +22,17 @@ Although the crowdsourcing method has high accuracy, it is expensive and slow. T
 ## Simple Idea
 When we analyze the relevant data set, we consider dividing different points into different similarity planes by similarity of reference machine recognition. Drawing the picture can find the following connected branches:
 
-![analyze](./dataset/img/analyze.png)
+<p align="center">
+	<img src="./dataset/img/analyze.png" width="600"/>
+</p>
 
 The vertices represent records, the edges between vertices represent whether they point to the same entity, the blue edges are yes, the red edges are no.
 
-It can be found that vertices with more than two red edges have a high probability that the vertices around them do not point to the same vertex.Since there will be many similar connected branches in different planes, consider asking the crowdsourcing of each connected branch to infer the relationship between the other vertices. See [similarty_graph.py comment](./graph/similarty_graph.py) for main algorithms.
+It can be found that vertices with more than two red edges have a high probability that the vertices around them do not point to the same vertex.Since there will be many similar connected branches in different planes, consider asking the crowdsourcing of each connected branch to infer the relationship between the other vertices. See [similarty_graph.py comment](./src/similarity_graph.py) for main algorithms.
 
-![schematic](./dataset/img/schematic.png)
+<p align="center">
+	<img src="./dataset/img/schematic.png" width="600"/>
+</p>
 
 ## Experiment
 Using the experimental dataset from ACD:
@@ -38,4 +42,6 @@ Using the experimental dataset from ACD:
 
 Coding and calculating the F1-Measure indicator as follows:
 
-![f1-measure](./dataset/img/f1-measure.png)
+<p align="center">
+	<img src="./dataset/img/f1-measure.png" width="300"/>
+</p>
