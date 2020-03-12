@@ -40,7 +40,7 @@ Using the experimental dataset from ACD:
 - [product](http://dbs.uni-leipzig.de/Abt-Buy.zip)
 - [restaurant](http://www.cs.utexas.edu/users/ml/riddle/data/restaurant.tar.gz)
 
-Coding and calculating the F1-Measure indicator as follows:
+Coding and calculating the F1-Measure as follows:
 
 <p align="center">
 	<img src="./dataset/img/f1-measure.png" width="300"/>
